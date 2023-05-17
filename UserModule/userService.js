@@ -1,5 +1,10 @@
 const error = require("mongoose/lib/error")
 var user = require("./userModal")
+const bcrypt = require("bcryptjs");
+// import JsonWebToken
+var jwt = require('jsonwebtoken');
+const { token } = require("morgan");
+const jwt_secret_key= "mykey";
 
 
 async function add(req, res,next){
@@ -12,7 +17,7 @@ async function add(req, res,next){
         Username:req.body.Username,
         phone:req.body.phone,
         email:req.body.email,
-        password:req.body.password,
+        password: bcrypt.hashSync(req.body.password),
         role: req.params.role,
         image: req.body.image
     })
@@ -63,11 +68,64 @@ async function update(req,res,next){
         res.end();
 }
 
+async function login(req, res, next){
+    const password = req.body.password;
+    try{
+        (userExisting = await user.findOne({Username:req.body.Username})),
+        (err,usr) => {
+            if(err){
+                console.log(err);
+            }else
+                console.log(usr);
+        };
+    } catch (err){
+        return new Error(err);
+    }
+    if (userExisting == null) {
+        return res.status(400).json({ message: "Inexistant user" });
+    }
+
+    const comparepwd = bcrypt.compareSync(password , userExisting.password);
+
+    if(comparepwd == false){
+        return res.status(400).json({message : 'Wrong Password '})
+    }
+
+    const authToken = jwt.sign(
+        {
+            id:userExisting._id,
+            role:userExisting.role,
+            password:userExisting.password,
+            Username:userExisting.Username,
+            FirstName:userExisting.FirstName,
+            LastName:userExisting.LastName,
+            email:userExisting.email,
+            phone:userExisting.phone
+        },
+        jwt_secret_key,
+        {expiresIn: '1hr' },
+        { algorithm: 'RS256' }
+    );
+
+    res.cookie("token" , authToken,{
+        path:"/",
+        expires: new Date(Date.now() + 1000 * 60 * 60), //30 seconds
+        httpOnly: true,
+        sameSite : "lax"
+    })
+
+    //req.session.sessionId = userExisting.Username;
+    userExisting.authTokens.push({authToken});
+    await userExisting.save();
+    return res.status(200).json({message: "Succefully loged in " , userExisting , token})
+}
+
 
 module.exports = {
     add,
     getAll:getAll,
     deleteUser,
-    update
+    update,
+    login
 
 }

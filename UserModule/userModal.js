@@ -14,7 +14,13 @@ var User = new Schema(
         type : String,
         default : "user",
         enum: ["superadmin","admin","user"]
-    }
+    },
+    authTokens: [{
+        authToken : {
+            type : String,
+            required : true
+        }
+    }]
 });
 
 module.exports = mongoose.model('user',User);
