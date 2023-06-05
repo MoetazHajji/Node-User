@@ -19,7 +19,7 @@ async function add(req, res,next){
         email:req.body.email,
         password: bcrypt.hashSync(req.body.password),
         role: req.params.role,
-        image: req.body.image
+        image: imagee
     })
     newUser.save()
     .then(
@@ -114,10 +114,31 @@ async function login(req, res, next){
         sameSite : "lax"
     })
 
-    //req.session.sessionId = userExisting.Username;
+    req.session.sessionId = userExisting.Username;
     userExisting.authTokens.push({authToken});
     await userExisting.save();
     return res.status(200).json({message: "Succefully loged in " , userExisting , token})
+}
+
+async function refresh(req, res , next){
+    const header = req.cookies.authToken;
+    const decodedtoken = jwt.verify(header , 'mykey');
+    console.log(decodedtoken);
+    const usr = await user.findOne({Username:decodedtoken.Username});
+    return res.json(usr);
+}
+
+async function logout(req, res, next){
+    req.session.destroy();
+    res.status(200).clearCookie();
+    res.end();
+}
+
+async function getUserConnected(req, res, next){
+    const header = req.cookies.token;
+    const decodedtoken = jwt.verify(header , "mykey");
+    const usr = await user.findOne({Username : decodedtoken.Username })
+    return res.json(usr)
 }
 
 
@@ -126,6 +147,9 @@ module.exports = {
     getAll:getAll,
     deleteUser,
     update,
-    login
+    login,
+    refresh,
+    logout,
+    getUserConnected
 
 }

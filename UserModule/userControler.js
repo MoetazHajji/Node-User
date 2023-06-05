@@ -8,5 +8,7 @@ router.get("/all" , service.getAll);
 router.delete("/delete/:id" , service.deleteUser);
 router.put("/update/:id", service.update);
 router.post("/login" , service.login);
+router.get("/logout" , service.logout);
+router.get("/userConnected" , service.getUserConnected)
 
 module.exports = router;
